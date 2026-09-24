@@ -1,0 +1,137 @@
+Identificar el agua
+
+No debemos tomar literalmente el primer punto donde aparece agua.
+
+En la interfaz membrana/agua siempre habrá:
+
+agua interfacial,
+grupos polares,
+hidratación de fosfolípidos,
+iones cerca de la superficie.
+
+Por eso yo definiría una zona acuosa efectiva con un criterio reproducible.
+
+Por ejemplo:
+
+Un compartimento acuoso comienza/termina donde la densidad de agua supera un determinado porcentaje de la densidad de las regiones bulk.
+
+Eso permite separar:
+
+bulk water
+│
+│
+│ interfaz
+│
+│ membrana
+
+sin incluir el interior hidrofóbico de la membrana.
+
+5. Aún mejor para tu problema: usar agua + membrana
+
+Para tu CompEL, yo haría un análisis combinado:
+
+A. Densidad de agua
+OH2 → dónde hay solvente
+B. Densidad de fosfatos
+P de POPC/POPE/POPS → dónde están las membranas
+C. Iones
+CAL
+CLA
+POT
+
+Así podemos identificar automáticamente:
+
+external_lower
+membrane_lower
+central
+membrane_upper
+external_upper
+
+y, dentro de cada región, calcular:
+
+$$ V = A_{XY}\Delta z $$
+
+pero solamente para la región acuosa, no para la membrana.
+
+6. Hay una ventaja adicional en tu sistema
+
+Como las dos membranas tienen aproximadamente la misma orientación, podemos calcular por separado:
+
+$$ V_{\mathrm{central}} $$ $$ V_{\mathrm{external,lower}} $$ $$ V_{\mathrm{external,upper}} $$
+
+y después:
+
+$$ V_{\mathrm{external,total}} = V_{\mathrm{external,lower}} + V_{\mathrm{external,upper}} $$
+
+Esto es importante porque los dos externos forman un único compartimento conectado por periodicidad.
+
+Es decir:
+
+          CENTRAL
+             │
+       ┌─────┴─────┐
+       │           │
+ membrane       membrane
+       │           │
+ external       external
+       │           │
+       └──── PBC ──┘
+
+Para la concentración externa podemos entonces usar:
+
+$$ [Ca]_{\mathrm{ext}} = \frac{N_{Ca,\mathrm{ext}}} {N_A V_{\mathrm{ext}}} $$
+7. Y esto nos permite hacer algo mucho más útil
+
+Una vez que tengamos esos tres volúmenes, podemos calcular la concentración actual de Ca²⁺, no asumir que sigue siendo exactamente 150 mM.
+
+Para cada compartimento:
+
+$$ C_{Ca} = \frac{N_{Ca}} {0.602214 \times V_{\mathrm{nm^3}}} $$
+
+porque:
+
+$$ 1\;M = 0.602214\;\mathrm{iones/nm^3} $$
+
+Entonces podremos obtener algo como:
+
+                    Ca2+       Volumen       [Ca2+]
+-------------------------------------------------------
+central             191        XXX nm³       XX mM
+external lower      XXX        XXX nm³       XX mM
+external upper      XXX        XXX nm³       XX mM
+external total      XXX        XXX nm³       XX mM
+
+Y recién ahí decidir cuántos CAL eliminar.
+
+8. Esto es preferible a "eliminar 90% de los CAL"
+
+Por ejemplo, si encontramos:
+
+central = 140 mM
+external = 145 mM
+
+y queremos aproximadamente:
+
+central/external = 10
+
+el objetivo sería:
+
+external ≈ 14 mM
+
+y calculamos exactamente cuántos CAL tienen que quedar:
+
+$$ N_{Ca,ext,target} = 0.602214 \times V_{ext} \times C_{ext,target} $$
+
+Después:
+
+$$ N_{Ca,remove} = N_{Ca,ext,current} - N_{Ca,ext,target} $$
+
+Y por cada Ca eliminado:
+
+1 CAL + 2 CLA
+
+de modo que:
+
+Δcharge = +2 + (-1)×2 = 0
+
+Así mantenemos la neutralidad global.

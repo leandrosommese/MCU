@@ -1,0 +1,241 @@
+Organizacion del sistema
+
+1. Límites que podemos usar
+
+Del perfil:
+
+Membrana inferior: aproximadamente 50–95 Å
+Región central acuosa: aproximadamente 95–215 Å
+Membrana superior: aproximadamente 215–260 Å
+Exterior superior: 260–331.49 Å
+Exterior inferior: 0–50 Å
+
+Los mínimos de agua son especialmente claros:
+
+                 agua
+0–50 Å       ████████████████   externo inferior
+50–95 Å      ░░░░░░░░░░░░░░░░   membrana
+95–215 Å     █████████████████  CENTRAL
+215–260 Å    ░░░░░░░░░░░░░░░░   membrana
+260–331 Å    ████████████████   externo superior
+
+Por lo tanto, para generar el gradiente, podemos definir:
+
+$$ V_\mathrm{central}=A_{XY}(215-95) $$
+
+y
+
+$$ V_\mathrm{external}=A_{XY}(50-0)+A_{XY}(331.486-260) $$
+
+con
+
+$$ A_{XY}=152.496^2 $$
+
+Esto da aproximadamente:
+
+Compartimento	ΔZ	Volumen geométrico
+Central	120 Å	2790 nm³
+Externo inferior	50 Å	1163 nm³
+Externo superior	71.49 Å	1659 nm³
+Externo total	121.49 Å	2822 nm³
+
+Importante: estos son volúmenes acuosos geométricos basados en el perfil de agua, no el volumen total de la caja.
+
+2. Ahora podemos calcular las concentraciones actuales
+
+Tenemos:
+
+central: 191 CAL
+exterior: 61 + 100 = 161 CAL
+
+Si usamos esos volúmenes:
+
+$$ [Ca]_\mathrm{central} = \frac{191}{0.602214\times2790} $$
+
+≈ 0.114 M
+
+y:
+
+$$ [Ca]_\mathrm{external} = \frac{161}{0.602214\times2822} $$
+
+≈ 0.095 M
+
+Es decir, después de la clasificación geométrica tenemos aproximadamente:
+
+CENTRAL     ~114 mM
+EXTERNO      ~95 mM
+
+No son exactamente 150 mM porque el sistema tiene una gran cantidad de espacio ocupado por membranas/proteína y porque estamos estimando el volumen mediante los límites de agua.
+
+3. Para tu primer sistema con gradiente
+
+Yo no intentaría ahora construir, por ejemplo, un gradiente fisiológico de µM. Con solamente ~500 Ca²⁺ totales sería muy difícil representarlo de manera útil.
+
+Para una primera simulación de CompEL, podemos definir un gradiente de concentración 10:1:
+
+$$ \frac{[Ca]_\mathrm{central}} {[Ca]_\mathrm{external}} \approx10 $$
+
+Manteniendo el central aproximadamente donde está:
+
+$$ [Ca]_\mathrm{central}\approx114\,mM $$
+
+el objetivo externo sería:
+
+$$ [Ca]_\mathrm{external}\approx11.4\,mM $$
+
+Entonces necesitamos dejar aproximadamente:
+
+$$ N_{Ca,external} = 0.602214\times2822\times0.0114 $$
+
+≈ 19 Ca²⁺
+
+Actualmente tenemos 161 externos.
+
+Por lo tanto:
+
+$$ 161-19=\boxed{142\;Ca^{2+}} $$
+
+serían eliminados del compartimento externo.
+
+4. Y para mantener neutralidad
+
+Por cada CAL eliminado:
+
+1 CAL
+2 CLA
+
+Por lo tanto:
+
+142 CAL
+284 CLA
+
+Eso deja aproximadamente:
+
+                 CAL       CLA
+--------------------------------
+CENTRAL          191       557
+EXTERNO           19       395
+
+Los POT no los tocamos.
+
+La carga eliminada es:
+
+$$ 142(+2)+284(-1)=0 $$
+
+por lo que la carga global del sistema permanece exactamente igual.
+
+5. Pero hay una cosa que quiero cambiar
+
+No eliminaría aleatoriamente 142 CAL de los 161 externos.
+
+Tenemos dos reservorios:
+
+external lower: 61 CAL
+external upper: 100 CAL
+
+y están conectados por periodicidad.
+
+Podríamos, por ejemplo, seleccionar los 142 Ca externos aleatoriamente entre ambos reservorios, pero manteniendo la proporción aproximadamente 61:100.
+
+Eso produciría aproximadamente:
+
+inferior: 54 CAL eliminados → quedan 7
+superior: 88 CAL eliminados → quedan 12
+
+Es decir:
+
+external lower ≈ 7 Ca
+external upper ≈ 12 Ca
+total          = 19 Ca
+
+Esto es mucho mejor que vaciar completamente uno de los dos lados.
+
+6. Sin embargo, hay una mejora importante
+
+Antes de eliminar los CLA, sí necesitamos seleccionar los Cl− externamente, no simplemente tomar los primeros 284 CLA del archivo.
+
+Podemos hacer exactamente lo mismo espacialmente:
+
+CAL:
+    seleccionar únicamente
+    0–50 Å y 260–331.486 Å
+
+CLA:
+    seleccionar únicamente
+    0–50 Å y 260–331.486 Å
+
+y eliminar:
+
+142 CAL
+284 CLA
+
+elegidos aleatoriamente dentro de esas regiones.
+
+Eso garantiza que no toquemos:
+
+Ca central
+Cl central
+iones en la membrana
+MCU
+EMRE
+MICUs
+lípidos
+7. Yo haría el sistema así
+
+Tenemos entonces dos condiciones:
+
+CONTROL
+
+Tu nvt6.gro original:
+
+central ≈ 114 mM
+external ≈ 95 mM
+
+Sin modificar.
+
+GRADIENTE
+
+A partir del mismo nvt6.gro:
+
+central ≈ 114 mM
+external ≈ 11 mM
+
+aproximadamente:
+
+142 CAL eliminados
+284 CLA eliminados
+0 POT eliminados
+
+y después una nueva etapa de minimización/equilibración, antes de comenzar la producción CompEL.
+
+Esto además es mucho más limpio experimentalmente: control y gradiente parten exactamente de la misma estructura equilibrada, y la única diferencia inicial es la distribución de Ca²⁺/Cl⁻.
+
+8. Podemos automatizarlo completamente
+
+Yo haría ahora un script que parta de:
+
+/home/leandro/mcu_emre/nvt6.gro
+
+y genere:
+
+control.gro
+gradient_10x.gro
+
+El script:
+
+identifica CAL, CLA, POT;
+usa exactamente los límites que acabamos de obtener;
+identifica los CAL externos;
+selecciona 142 para eliminación;
+identifica 284 CLA externos;
+los elimina;
+conserva todos los demás átomos y su orden;
+escribe un nuevo .gro;
+comprueba automáticamente:
+número de CAL antes/después,
+número de CLA antes/después,
+número de POT,
+carga eliminada,
+carga total antes/después,
+Ca central vs externo,
+concentración estimada antes/después.

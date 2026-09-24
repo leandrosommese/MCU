@@ -1,0 +1,27 @@
+El .gro no tiene vector de caja guardado. Por eso gmx solvate no "ve" espacio nuevo: usa como caja el bounding box de las coordenadas (18.192 × 18.393 × 28.112 nm), que es simplemente el rango de tus átomos, no una caja real.
+
+Además el center está en z = -0.083 nm, es decir, el sistema está centrado cerca de Z=0, y las coordenadas van desde ahí hacia arriba. Con esa geometría, solvate llena solo el bounding box, no una caja extendida.
+Solución: definir la caja explícitamente con -box
+
+Antes de solvatar, forzá una caja real con el tamaño que querés:
+bash
+
+gmx_mpi editconf -f sistema_original.gro -o sistema_box.gro \
+  -box 18.192 18.393 30.0 -c
+
+    18.192 18.393 = tu Box_X y Box_Y actuales en nm.
+
+    30.0 = Box_Z nuevo (28.112 + ~2 nm extra para la colita). Ajustá según cuánto necesites.
+
+    -c centra el sistema en la caja.
+
+Después verificá:
+bash
+
+gmx_mpi editconf -f sistema_box.gro -o /dev/null
+
+La salida debería mostrar box vectors con los valores reales, no ceros.
+Luego solvatá
+bash
+
+gmx_mpi solvate -cp sistema_box.gro -cs spc216.gro -o sistema_solv.gro -p topol.top
